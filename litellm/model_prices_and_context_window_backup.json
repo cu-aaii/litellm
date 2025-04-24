@@ -1694,6 +1694,33 @@
         "supports_reasoning": true,
         "supports_tool_choice": true
     },
+    "azure/gpt-4o-mini-tts-2025-03-20": {
+        "mode": "audio_speech", 
+        "input_cost_per_token": 0.0000006,
+        "output_cost_per_audio_token": 0.000012,
+        "litellm_provider": "azure",
+        "supported_endpoints": ["/v1/audio/speech"]
+    },
+    "azure/gpt-4o-transcribe-2025-03-20": {
+        "mode": "audio_transcription",
+        "input_cost_per_token": 0.0000025,
+        "input_cost_per_audio_token": 0.000006,
+        "output_cost_per_token": 0.00001, 
+        "litellm_provider": "azure",
+        "supported_modalities": ["text", "audio"],
+        "supported_output_modalities": ["text"],
+        "supported_endpoints": ["/v1/audio/transcriptions", "/v1/realtime"]
+    }, 
+    "azure/gpt-4o-mini-transcribe-2025-03-20": {
+        "mode": "audio_transcription",
+        "input_cost_per_token": 0.00000125,
+        "input_cost_per_audio_token": 0.000003,
+        "output_cost_per_token": 0.000005, 
+        "litellm_provider": "azure",
+        "supported_modalities": ["text", "audio"],
+        "supported_output_modalities": ["text"],
+        "supported_endpoints": ["/v1/audio/transcriptions", "/v1/realtime"]
+    }, 
     "azure/gpt-4o-mini-realtime-preview-2024-12-17": {
         "max_tokens": 4096,
         "max_input_tokens": 128000,
