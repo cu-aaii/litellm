@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from fastapi import HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator
 
 
 class LiteLLM_UserScimMetadata(BaseModel):
@@ -76,6 +76,12 @@ class SCIMPatchOperation(BaseModel):
     path: Optional[str] = None
     value: Optional[Any] = None
 
+    @validator("op", pre=True)
+    def lower_op(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+
+        return v
 
 class SCIMPatchOp(BaseModel):
     schemas: List[str] = ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
