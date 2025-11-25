@@ -22208,6 +22208,11 @@
         "max_tokens": 8000,
         "mode": "chat"
     },
+    "stability.stable-fast-upscale-v1:0": {
+        "litellm_provider": "bedrock",
+        "mode": "image_generation",
+        "output_cost_per_image": 0.03
+    },
     "stability.sd3-5-large-v1:0": {
         "litellm_provider": "bedrock",
         "max_input_tokens": 77,
