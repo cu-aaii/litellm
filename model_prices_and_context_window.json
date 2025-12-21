@@ -3589,6 +3589,38 @@
         "supports_tool_choice": true,
         "supports_vision": true,
         "supports_web_search": true
+    },   
+    "azure/gpt-image-1.5": {
+        "cache_read_input_image_token_cost": 2e-06,
+        "cache_read_input_token_cost": 1.25e-06,
+        "input_cost_per_token": 5e-06,
+        "litellm_provider": "azure",
+        "mode": "image_generation",
+        "output_cost_per_token": 1e-05,
+        "input_cost_per_image_token": 8e-06,
+        "output_cost_per_image_token": 3.2e-05,
+        "supported_endpoints": [
+            "/v1/images/generations",
+            "/v1/images/edits"
+        ],
+        "supports_vision": true,
+        "supports_pdf_input": true
+    },
+    "azure/gpt-image-1.5-2025-12-16": {
+        "cache_read_input_image_token_cost": 2e-06,
+        "cache_read_input_token_cost": 1.25e-06,
+        "input_cost_per_token": 5e-06,
+        "litellm_provider": "azure",
+        "mode": "image_generation",
+        "output_cost_per_token": 1e-05,
+        "input_cost_per_image_token": 8e-06,
+        "output_cost_per_image_token": 3.2e-05,
+        "supported_endpoints": [
+            "/v1/images/generations",
+            "/v1/images/edits"
+        ],
+        "supports_vision": true,
+        "supports_pdf_input": true
     },
     "azure/gpt-image-1": {
         "input_cost_per_pixel": 4.0054321e-08,
@@ -3691,6 +3723,87 @@
     },
     "azure/medium/1536-x-1024/gpt-image-1": {
         "input_cost_per_pixel": 4.0054321e-08,
+        "litellm_provider": "azure",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "azure/high/1024-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 1.26838684e-07,
+        "litellm_provider": "azure",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "azure/high/1024-x-1536/gpt-image-1.5": {
+        "input_cost_per_pixel": 1.27156576e-07,
+        "litellm_provider": "azure",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "azure/high/1536-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 1.27156576e-07,
+        "litellm_provider": "azure",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "azure/low/1024-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 8.58306885e-09,
+        "litellm_provider": "azure",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "azure/low/1024-x-1536/gpt-image-1.5": {
+        "input_cost_per_pixel": 8.26517741e-09,
+        "litellm_provider": "azure",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "azure/low/1536-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 8.26517741e-09,
+        "litellm_provider": "azure",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "azure/medium/1024-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 3.24249268e-08,
+        "litellm_provider": "azure",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "azure/medium/1024-x-1536/gpt-image-1.5": {
+        "input_cost_per_pixel": 3.17891439e-08,
+        "litellm_provider": "azure",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "azure/medium/1536-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 3.17891439e-08,
         "litellm_provider": "azure",
         "mode": "image_generation",
         "output_cost_per_pixel": 0.0,
@@ -15364,6 +15477,34 @@
             "video"
         ]
     },
+    "gemini/veo-3.1-fast-generate-001": {
+        "litellm_provider": "gemini",
+        "max_input_tokens": 1024,
+        "max_tokens": 1024,
+        "mode": "video_generation",
+        "output_cost_per_second": 0.15,
+        "source": "https://ai.google.dev/gemini-api/docs/video",
+        "supported_modalities": [
+            "text"
+        ],
+        "supported_output_modalities": [
+            "video"
+        ]
+    },
+    "gemini/veo-3.1-generate-001": {
+        "litellm_provider": "gemini",
+        "max_input_tokens": 1024,
+        "max_tokens": 1024,
+        "mode": "video_generation",
+        "output_cost_per_second": 0.40,
+        "source": "https://ai.google.dev/gemini-api/docs/video",
+        "supported_modalities": [
+            "text"
+        ],
+        "supported_output_modalities": [
+            "video"
+        ]
+    },
     "github_copilot/claude-haiku-4.5": {
         "litellm_provider": "github_copilot",
         "max_input_tokens": 128000,
@@ -17638,6 +17779,87 @@
         "supported_endpoints": [
             "/v1/images/generations",
             "/v1/images/edits"
+        ]
+    },
+    "high/1024-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 1.26838684e-07,
+        "litellm_provider": "openai",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "high/1024-x-1536/gpt-image-1.5": {
+        "input_cost_per_pixel": 1.27156576e-07,
+        "litellm_provider": "openai",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "high/1536-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 1.27156576e-07,
+        "litellm_provider": "openai",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "low/1024-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 8.58306885e-09,
+        "litellm_provider": "openai",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "low/1024-x-1536/gpt-image-1.5": {
+        "input_cost_per_pixel": 8.26517741e-09,
+        "litellm_provider": "openai",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "low/1536-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 8.26517741e-09,
+        "litellm_provider": "openai",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "medium/1024-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 3.24249268e-08,
+        "litellm_provider": "openai",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "medium/1024-x-1536/gpt-image-1.5": {
+        "input_cost_per_pixel": 3.17891439e-08,
+        "litellm_provider": "openai",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
+        ]
+    },
+    "medium/1536-x-1024/gpt-image-1.5": {
+        "input_cost_per_pixel": 3.17891439e-08,
+        "litellm_provider": "openai",
+        "mode": "image_generation",
+        "output_cost_per_pixel": 0.0,
+        "supported_endpoints": [
+            "/v1/images/generations"
         ]
     },
     "gpt-realtime": {
@@ -28102,6 +28324,34 @@
         ]
     },
     "vertex_ai/veo-3.1-fast-generate-preview": {
+        "litellm_provider": "vertex_ai-video-models",
+        "max_input_tokens": 1024,
+        "max_tokens": 1024,
+        "mode": "video_generation",
+        "output_cost_per_second": 0.15,
+        "source": "https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/veo",
+        "supported_modalities": [
+            "text"
+        ],
+        "supported_output_modalities": [
+            "video"
+        ]
+    },
+    "vertex_ai/veo-3.1-generate-001": {
+        "litellm_provider": "vertex_ai-video-models",
+        "max_input_tokens": 1024,
+        "max_tokens": 1024,
+        "mode": "video_generation",
+        "output_cost_per_second": 0.4,
+        "source": "https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/veo",
+        "supported_modalities": [
+            "text"
+        ],
+        "supported_output_modalities": [
+            "video"
+        ]
+    },
+    "vertex_ai/veo-3.1-fast-generate-001": {
         "litellm_provider": "vertex_ai-video-models",
         "max_input_tokens": 1024,
         "max_tokens": 1024,
