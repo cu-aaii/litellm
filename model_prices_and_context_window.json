@@ -6455,6 +6455,10 @@
         "supports_web_search": true
     },
     "azure/gpt-5.6": {
+        "cache_creation_input_token_cost": 6.25e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 1.25e-05,
+        "cache_creation_input_token_cost_priority": 1.25e-05,
+        "cache_creation_input_token_cost_above_272k_tokens_priority": 2.5e-05,
         "cache_read_input_token_cost": 5e-07,
         "cache_read_input_token_cost_above_272k_tokens": 1e-06,
         "cache_read_input_token_cost_priority": 1e-06,
@@ -6500,6 +6504,10 @@
         "supports_minimal_reasoning_effort": false
     },
     "azure/gpt-5.6-sol": {
+        "cache_creation_input_token_cost": 6.25e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 1.25e-05,
+        "cache_creation_input_token_cost_priority": 1.25e-05,
+        "cache_creation_input_token_cost_above_272k_tokens_priority": 2.5e-05,
         "cache_read_input_token_cost": 5e-07,
         "cache_read_input_token_cost_above_272k_tokens": 1e-06,
         "cache_read_input_token_cost_priority": 1e-06,
@@ -6545,6 +6553,10 @@
         "supports_minimal_reasoning_effort": false
     },
     "azure/gpt-5.6-terra": {
+        "cache_creation_input_token_cost": 3.125e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 6.25e-06,
+        "cache_creation_input_token_cost_priority": 6.25e-06,
+        "cache_creation_input_token_cost_above_272k_tokens_priority": 1.25e-05,
         "cache_read_input_token_cost": 2.5e-07,
         "cache_read_input_token_cost_above_272k_tokens": 5e-07,
         "cache_read_input_token_cost_priority": 5e-07,
@@ -6590,6 +6602,10 @@
         "supports_minimal_reasoning_effort": false
     },
     "azure/gpt-5.6-luna": {
+        "cache_creation_input_token_cost": 1.25e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 2.5e-06,
+        "cache_creation_input_token_cost_priority": 2.5e-06,
+        "cache_creation_input_token_cost_above_272k_tokens_priority": 5e-06,
         "cache_read_input_token_cost": 1e-07,
         "cache_read_input_token_cost_above_272k_tokens": 2e-07,
         "cache_read_input_token_cost_priority": 2e-07,
@@ -6635,6 +6651,9 @@
         "supports_minimal_reasoning_effort": false
     },
     "azure/us/gpt-5.6": {
+        "cache_creation_input_token_cost": 6.875e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 1.375e-05,
+        "cache_creation_input_token_cost_priority": 1.375e-05,
         "cache_read_input_token_cost": 5.5e-07,
         "cache_read_input_token_cost_above_272k_tokens": 1.1e-06,
         "cache_read_input_token_cost_priority": 1.375e-06,
@@ -6677,6 +6696,9 @@
         "supports_minimal_reasoning_effort": false
     },
     "azure/us/gpt-5.6-sol": {
+        "cache_creation_input_token_cost": 6.875e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 1.375e-05,
+        "cache_creation_input_token_cost_priority": 1.375e-05,
         "cache_read_input_token_cost": 5.5e-07,
         "cache_read_input_token_cost_above_272k_tokens": 1.1e-06,
         "cache_read_input_token_cost_priority": 1.375e-06,
@@ -6719,6 +6741,9 @@
         "supports_minimal_reasoning_effort": false
     },
     "azure/us/gpt-5.6-terra": {
+        "cache_creation_input_token_cost": 3.4375e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 6.875e-06,
+        "cache_creation_input_token_cost_priority": 6.875e-06,
         "cache_read_input_token_cost": 2.75e-07,
         "cache_read_input_token_cost_above_272k_tokens": 5.5e-07,
         "cache_read_input_token_cost_priority": 6.875e-07,
@@ -6761,6 +6786,9 @@
         "supports_minimal_reasoning_effort": false
     },
     "azure/us/gpt-5.6-luna": {
+        "cache_creation_input_token_cost": 1.375e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 2.75e-06,
+        "cache_creation_input_token_cost_priority": 2.75e-06,
         "cache_read_input_token_cost": 1.1e-07,
         "cache_read_input_token_cost_above_272k_tokens": 2.2e-07,
         "cache_read_input_token_cost_priority": 2.75e-07,
@@ -6803,6 +6831,9 @@
         "supports_minimal_reasoning_effort": false
     },
     "azure/eu/gpt-5.6": {
+        "cache_creation_input_token_cost": 6.875e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 1.375e-05,
+        "cache_creation_input_token_cost_priority": 1.375e-05,
         "cache_read_input_token_cost": 5.5e-07,
         "cache_read_input_token_cost_above_272k_tokens": 1.1e-06,
         "cache_read_input_token_cost_priority": 1.375e-06,
@@ -6845,6 +6876,9 @@
         "supports_minimal_reasoning_effort": false
     },
     "azure/eu/gpt-5.6-sol": {
+        "cache_creation_input_token_cost": 6.875e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 1.375e-05,
+        "cache_creation_input_token_cost_priority": 1.375e-05,
         "cache_read_input_token_cost": 5.5e-07,
         "cache_read_input_token_cost_above_272k_tokens": 1.1e-06,
         "cache_read_input_token_cost_priority": 1.375e-06,
@@ -6887,6 +6921,9 @@
         "supports_minimal_reasoning_effort": false
     },
     "azure/eu/gpt-5.6-terra": {
+        "cache_creation_input_token_cost": 3.4375e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 6.875e-06,
+        "cache_creation_input_token_cost_priority": 6.875e-06,
         "cache_read_input_token_cost": 2.75e-07,
         "cache_read_input_token_cost_above_272k_tokens": 5.5e-07,
         "cache_read_input_token_cost_priority": 6.875e-07,
@@ -6929,6 +6966,9 @@
         "supports_minimal_reasoning_effort": false
     },
     "azure/eu/gpt-5.6-luna": {
+        "cache_creation_input_token_cost": 1.375e-06,
+        "cache_creation_input_token_cost_above_272k_tokens": 2.75e-06,
+        "cache_creation_input_token_cost_priority": 2.75e-06,
         "cache_read_input_token_cost": 1.1e-07,
         "cache_read_input_token_cost_above_272k_tokens": 2.2e-07,
         "cache_read_input_token_cost_priority": 2.75e-07,
