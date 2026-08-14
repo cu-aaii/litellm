@@ -26,6 +26,7 @@ from litellm.proxy.openai_files_endpoints.common_utils import (
     apply_team_provider_credentials,
     batch_cost_poller_is_active,
     decode_model_from_file_id,
+    add_internal_model_credentials_for_batch,
     encode_batch_response_ids,
     encode_file_id_with_model,
     get_batch_from_database,
@@ -520,6 +521,13 @@ async def retrieve_batch(
                 raise HTTPException(
                     status_code=500,
                     detail={"error": "LLM Router not initialized. Ensure models added to proxy."},
+                )
+
+            if unified_batch_id:
+                add_internal_model_credentials_for_batch(
+                    data=data,
+                    llm_router=llm_router,
+                    model_id=get_model_id_from_unified_batch_id(unified_batch_id),
                 )
 
             response = await llm_router.aretrieve_batch(**data)  # type: ignore
