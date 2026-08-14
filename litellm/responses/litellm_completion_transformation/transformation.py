@@ -2635,6 +2635,7 @@ class LiteLLMCompletionResponsesConfig:
                 for field, value in (
                     ("text_tokens", getattr(completion_details, "text_tokens", None)),
                     ("image_tokens", getattr(completion_details, "image_tokens", None)),
+                    ("audio_tokens", getattr(completion_details, "audio_tokens", None)),
                 )
                 if value is not None
             }

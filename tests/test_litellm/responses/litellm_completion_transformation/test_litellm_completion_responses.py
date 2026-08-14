@@ -2425,6 +2425,60 @@ class TestUsageTransformation:
         assert response_usage.input_tokens_details.cached_tokens == 100
         assert getattr(response_usage.input_tokens_details, "cache_write_tokens", None) == 800
 
+    def test_transform_usage_preserves_audio_output_tokens_so_realtime_bills_them(self):
+        """Regression: the bridge dropped output audio tokens, so a voice session's
+        most expensive modality billed as nothing.
+
+        InputTokensDetails already carried audio_tokens while OutputTokensDetails did
+        not, so input audio was priced and output audio silently was not. Measured on
+        a live Gemini Live session: 180 of 200 output tokens were audio and the call
+        billed 52x under.
+        """
+        import litellm
+        from litellm.cost_calculator import (
+            RealtimeAPITokenUsageProcessor,
+            handle_realtime_stream_cost_calculation,
+        )
+
+        model = "gemini-3.1-flash-live-preview"
+        entry = litellm.model_cost[model]
+        usage = Usage(
+            prompt_tokens=4,
+            completion_tokens=200,
+            total_tokens=204,
+            prompt_tokens_details=PromptTokensDetailsWrapper(text_tokens=4, cached_tokens=0),
+            completion_tokens_details=CompletionTokensDetailsWrapper(text_tokens=20, audio_tokens=180),
+        )
+
+        response_usage = LiteLLMCompletionResponsesConfig._transform_chat_completion_usage_to_responses_usage(
+            chat_completion_response=usage
+        )
+
+        assert response_usage.output_tokens_details is not None
+        assert getattr(response_usage.output_tokens_details, "audio_tokens", None) == 180
+
+        results = [
+            {"type": "session.created", "session": {"model": model}},
+            {"type": "response.done", "response": {"usage": response_usage.model_dump()}},
+        ]
+        combined = RealtimeAPITokenUsageProcessor.collect_and_combine_usage_from_realtime_stream_results(results)
+        assert combined.completion_tokens_details.audio_tokens == 180
+
+        cost = handle_realtime_stream_cost_calculation(
+            results=results,
+            combined_usage_object=combined,
+            custom_llm_provider="gemini",
+            litellm_model_name=model,
+        )
+        expected = (
+            4 * entry["input_cost_per_token"]
+            + 20 * entry["output_cost_per_token"]
+            + 180 * entry["output_cost_per_audio_token"]
+        )
+        assert cost == pytest.approx(expected, rel=1e-9)
+        audio_share = 180 * entry["output_cost_per_audio_token"]
+        assert cost > audio_share, "the audio tokens must dominate this session's cost"
+
     def test_transform_usage_with_reasoning_tokens_gemini(self):
         """Test that reasoning_tokens from Gemini are properly transformed to output_tokens_details"""
         # Setup: Simulate Gemini usage with thoughtsTokenCount

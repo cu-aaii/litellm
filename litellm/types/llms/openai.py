@@ -1252,6 +1252,8 @@ class OutputTokensDetails(BaseLiteLLMOpenAIResponseObject):
 
     text_tokens: int | None = None
 
+    audio_tokens: int | None = None
+
     model_config = {"extra": "allow"}
 
 
