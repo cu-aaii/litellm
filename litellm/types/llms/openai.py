@@ -1177,6 +1177,10 @@ class InputTokensDetails(BaseLiteLLMOpenAIResponseObject):
     cached_tokens: int = 0
     text_tokens: int | None = None
 
+    image_tokens: int | None = None
+
+    video_tokens: int | None = None
+
     model_config = {"extra": "allow"}
 
 
