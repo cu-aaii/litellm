@@ -3,7 +3,7 @@ import mimetypes
 import re
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import TYPE_CHECKING, Final, Literal, Optional
 
 from litellm.repositories.table_repositories import (
     ManagedFileRepository,
@@ -1181,9 +1181,7 @@ async def update_batch_in_database(
             "updated_at": litellm.utils.get_utc_datetime(),
         }
 
-        poller_owns: Final = (
-            batch_cost_poller_is_active() if poller_owns_accounting is None else poller_owns_accounting
-        )
+        poller_owns: Final = batch_cost_poller_is_active() if poller_owns_accounting is None else poller_owns_accounting
         if db_status == "complete" and not poller_owns:
             update_data["batch_processed"] = True
 
