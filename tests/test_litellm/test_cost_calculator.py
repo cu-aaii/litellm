@@ -3751,3 +3751,69 @@ def test_completion_cost_prices_anthropic_shaped_cache_read_tokens(_local_model_
     )
 
     assert cost == pytest.approx(3 * 4e-6 + 4014 * 4e-7 + 5 * 2e-5, rel=1e-9)
+
+
+def test_realtime_honours_deployment_custom_pricing(monkeypatch):
+    """Regression: a deployment's pricing override never reached realtime costing.
+
+    `model_info` overrides are registered under the deployment's own model_id, and
+    only `_select_model_name_for_cost_calc` knows to look there. The realtime branch
+    discarded that result and priced by the model the session reported, so a config
+    that zeroes a realtime deployment was billed at the public rate anyway. Audio is
+    the bulk of a voice call, so the gap was most of the cost.
+    """
+    from litellm.types.utils import CompletionTokensDetailsWrapper
+
+    model = "gemini-3.1-flash-live-preview"
+    deployment_key = "deployment-id-for-a-zero-rated-realtime-group"
+    paid = litellm.model_cost[model]
+    monkeypatch.setitem(
+        litellm.model_cost,
+        deployment_key,
+        {
+            **paid,
+            "input_cost_per_token": 0.0,
+            "output_cost_per_token": 0.0,
+            "input_cost_per_audio_token": 0.0,
+            "output_cost_per_audio_token": 0.0,
+            "cache_read_input_token_cost": 0.0,
+        },
+    )
+
+    results: OpenAIRealtimeStreamList = [
+        {"type": "session.created", "session": {"model": model}},
+        {
+            "type": "response.done",
+            "response": {"usage": {"input_tokens": 10, "output_tokens": 200, "total_tokens": 210}},
+        },
+    ]
+    usage = Usage(
+        prompt_tokens=10,
+        completion_tokens=200,
+        total_tokens=210,
+        prompt_tokens_details=PromptTokensDetailsWrapper(text_tokens=10, cached_tokens=0),
+        completion_tokens_details=CompletionTokensDetailsWrapper(text_tokens=20, audio_tokens=180),
+    )
+
+    paid_cost = handle_realtime_stream_cost_calculation(
+        results=results,
+        combined_usage_object=usage,
+        custom_llm_provider="gemini",
+        litellm_model_name=model,
+    )
+    expected_paid = (
+        10 * paid["input_cost_per_token"]
+        + 20 * paid["output_cost_per_token"]
+        + 180 * paid["output_cost_per_audio_token"]
+    )
+    assert paid_cost == pytest.approx(expected_paid, rel=1e-9)
+    assert paid_cost > 0
+
+    zero_rated_cost = handle_realtime_stream_cost_calculation(
+        results=results,
+        combined_usage_object=usage,
+        custom_llm_provider="gemini",
+        litellm_model_name=model,
+        custom_pricing_model=deployment_key,
+    )
+    assert zero_rated_cost == 0.0

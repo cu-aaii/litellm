@@ -1522,6 +1522,7 @@ def completion_cost(
                         litellm_model_name=model,
                         data_residency=data_residency,
                         litellm_logging_obj=litellm_logging_obj,
+                        custom_pricing_model=selected_model if custom_pricing else None,
                     )
                 elif call_type == _MCP_CALL_TYPE:
                     from litellm.proxy._experimental.mcp_server.cost_calculator import (
@@ -2343,6 +2344,7 @@ def handle_realtime_stream_cost_calculation(
     litellm_model_name: str,
     data_residency: str | None = None,
     litellm_logging_obj: LitellmLoggingObject | None = None,
+    custom_pricing_model: str | None = None,
 ) -> float:
     """
     Handles the cost calculation for realtime stream responses.
@@ -2351,9 +2353,13 @@ def handle_realtime_stream_cost_calculation(
 
     Args:
         results: A list of OpenAIRealtimeStreamBaseObject objects
+        custom_pricing_model: deployment-scoped pricing key, tried ahead of the
+            model the session reported so a config override is not ignored
     """
     received_model = None
     potential_model_names: Final = []
+    if custom_pricing_model is not None:
+        potential_model_names.append(custom_pricing_model)
     for result in results:
         if result["type"] == "session.created":
             received_model = cast(OpenAIRealtimeStreamSessionEvents, result)["session"].get("model", None)
