@@ -2008,8 +2008,10 @@ class LiteLLMCompletionResponsesConfig:
             if hasattr(prompt_details, "text_tokens") and prompt_details.text_tokens is not None:
                 input_details_dict["text_tokens"] = prompt_details.text_tokens
 
-            if hasattr(prompt_details, "audio_tokens") and prompt_details.audio_tokens is not None:
-                input_details_dict["audio_tokens"] = prompt_details.audio_tokens
+            for modality in ("audio_tokens", "image_tokens", "video_tokens"):
+                value = getattr(prompt_details, modality, None)
+                if value is not None:
+                    input_details_dict[modality] = value
 
             if input_details_dict:
                 response_usage.input_tokens_details = InputTokensDetails(**input_details_dict)
