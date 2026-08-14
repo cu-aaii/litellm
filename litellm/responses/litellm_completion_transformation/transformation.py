@@ -2292,16 +2292,11 @@ class LiteLLMCompletionResponsesConfig:
         # Translate completion_tokens_details to output_tokens_details
         if hasattr(usage, "completion_tokens_details") and usage.completion_tokens_details is not None:
             completion_details: Final = usage.completion_tokens_details
-            output_details_dict: Final[dict[str, int]] = {}
-            if hasattr(completion_details, "reasoning_tokens") and completion_details.reasoning_tokens is not None:
-                output_details_dict["reasoning_tokens"] = completion_details.reasoning_tokens
-
-            if hasattr(completion_details, "text_tokens") and completion_details.text_tokens is not None:
-                output_details_dict["text_tokens"] = completion_details.text_tokens
-
-            if hasattr(completion_details, "image_tokens") and completion_details.image_tokens is not None:
-                output_details_dict["image_tokens"] = completion_details.image_tokens
-
+            output_details_dict: Final[dict[str, int]] = {
+                field: value
+                for field in ("reasoning_tokens", "text_tokens", "image_tokens", "audio_tokens")
+                if (value := getattr(completion_details, field, None)) is not None
+            }
             if output_details_dict:
                 response_usage.output_tokens_details = OutputTokensDetails(**output_details_dict)
 
