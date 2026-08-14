@@ -43,6 +43,7 @@ class CheckBatchCost:
         # Cached after the first poll cycle. Once we know the column is absent we skip
         # the guaranteed-failing primary query on every subsequent cycle.
         self._has_batch_processed_column: bool = True
+        self.batch_processed_support_confirmed: bool = False
 
     async def _get_user_info(self, batch_id, user_id) -> dict:
         """
@@ -579,6 +580,7 @@ class CheckBatchCost:
                     take=MAX_OBJECTS_PER_POLL_CYCLE,
                     order={"created_at": "asc"},
                 )
+                self.batch_processed_support_confirmed = True
             except Exception as query_err:
                 if "batch_processed" not in str(query_err).lower() and "unknown column" not in str(query_err).lower() and "does not exist" not in str(query_err).lower():
                     raise
