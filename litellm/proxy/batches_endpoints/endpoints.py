@@ -476,7 +476,8 @@ async def retrieve_batch(
                 f"Batch {batch_id} is in non-terminal state {response.status}, syncing with provider"
             )
 
-        if unified_batch_id and batch_cost_poller_is_active():
+        poller_owns_accounting = bool(unified_batch_id) and batch_cost_poller_is_active()
+        if poller_owns_accounting:
             data["litellm_metadata"] = {
                 **(data.get("litellm_metadata") or {}),
                 "batch_ignore_default_logging": True,
@@ -566,6 +567,7 @@ async def retrieve_batch(
             verbose_proxy_logger=verbose_proxy_logger,
             db_batch_object=db_batch_object,
             operation="retrieve",
+            poller_owns_accounting=poller_owns_accounting,
         )
 
         ### CALL HOOKS ### - modify outgoing data
