@@ -12,6 +12,7 @@ sys.path.insert(
 
 import litellm
 from litellm.proxy.utils import is_valid_api_key
+from litellm.types.router import CredentialLiteLLMParams, GenericLiteLLMParams
 from litellm.types.utils import (
     CallTypes,
     Delta,
@@ -20,6 +21,8 @@ from litellm.types.utils import (
     PromptTokensDetailsWrapper,
     StreamingChoices,
     Usage,
+    all_litellm_params,
+    bedrock_batch_litellm_params,
 )
 from litellm.utils import (
     ProviderConfigManager,
@@ -28,6 +31,7 @@ from litellm.utils import (
     _is_streaming_request,
     get_api_key,
     get_llm_provider,
+    get_non_default_completion_params,
     get_optional_params_image_gen,
     get_prompt_cache_min_tokens,
     is_cached_message,
@@ -5128,3 +5132,45 @@ def test_ai21_api_key_is_resolved_from_the_documented_env_var(monkeypatch: pytes
     monkeypatch.setenv("AI21_API_KEY", "sk-ai21-resolved-from-env")
 
     assert get_api_key(llm_provider="ai21", dynamic_api_key=None) == "sk-ai21-resolved-from-env"
+
+
+def test_bedrock_batch_params_never_reach_the_provider():
+    """A Bedrock managed-batch deployment carries aws_batch_role_arn / s3_* /
+    bedrock_tags in its litellm_params, and the same deployment also serves chat.
+    Anything the param builder does not recognize is swept into extra_body, so
+    Bedrock rejects the whole call: `aws_batch_role_arn: Extra inputs are not
+    permitted` (Anthropic models) or `extraneous key [aws_batch_role_arn] is not
+    permitted` (Nova/Llama/Titan), turning every non-batch request to that
+    deployment into a 400.
+
+    The batch path is unaffected by registering them, because GenericLiteLLMParams
+    is extra="allow" and preserves them into litellm_params for the batch and files
+    transformations that read them.
+    """
+    configured = {
+        field: ([{"key": "team", "value": "configured-value"}] if field == "bedrock_tags" else "configured-value")
+        for field in bedrock_batch_litellm_params
+    }
+    kwargs = {"a_real_provider_specific_param": 1, **configured}
+
+    non_default = get_non_default_completion_params(dict(kwargs))
+
+    assert non_default == {"a_real_provider_specific_param": 1}, (
+        "bedrock batch params leaked into the provider params: "
+        f"{sorted(set(non_default) - {'a_real_provider_specific_param'})}"
+    )
+    assert set(bedrock_batch_litellm_params) <= set(all_litellm_params)
+
+    batch_params = dict(GenericLiteLLMParams(**kwargs))
+    assert all(batch_params.get(field) == configured[field] for field in bedrock_batch_litellm_params), (
+        "registering these must not strip them from the batch path: "
+        f"{sorted(f for f in bedrock_batch_litellm_params if batch_params.get(f) != configured[f])}"
+    )
+
+    normalized = CredentialLiteLLMParams.model_validate(
+        GenericLiteLLMParams(**kwargs).model_dump(exclude_none=True)
+    ).model_dump(exclude_none=True)
+    assert all(normalized.get(field) == configured[field] for field in bedrock_batch_litellm_params), (
+        "credential normalization dropped batch params before the transformation: "
+        f"{sorted(f for f in bedrock_batch_litellm_params if normalized.get(f) != configured[f])}"
+    )
