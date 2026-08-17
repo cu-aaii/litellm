@@ -523,18 +523,45 @@ class Logging(LiteLLMLoggingBaseClass):
                 return model_id
         return None
 
+    def get_deployment_model_for_cost(self) -> str | None:
+        """The provider-qualified model to price against.
+
+        On a batch retrieve both self.model and litellm_params["model"] can be
+        unset, and self.model can otherwise carry the router's model_group alias,
+        which no cost map resolves. model_call_details holds the deployment's own
+        provider-qualified model, so it is preferred.
+        """
+        candidates: Final = (
+            (self.model_call_details or {}).get("model") if hasattr(self, "model_call_details") else None,
+            self.litellm_params.get("model") if hasattr(self, "litellm_params") else None,
+            self.model,
+        )
+        return next((candidate for candidate in candidates if isinstance(candidate, str) and candidate), None)
+
     def get_router_deployment_model_info(self) -> ModelInfo | None:
         """Pricing the router registered under this deployment's model_info.id.
 
         Returns None when the deployment declares no pricing of its own, so the
-        caller falls back to the global cost map.
+        caller falls back to the global cost map. The raw registration is what
+        decides that: the router registers an entry for every deployment, and
+        get_model_info fills absent costs with 0, so asking it directly cannot
+        tell "configured as free" apart from "no pricing configured".
         """
+        pricing_keys: Final = (
+            "input_cost_per_token",
+            "output_cost_per_token",
+            "input_cost_per_token_batches",
+            "output_cost_per_token_batches",
+        )
         model_id: Final = self.get_router_model_id()
         if model_id is None:
             return None
+        registered: Final = litellm.model_cost.get(model_id)
+        if not isinstance(registered, dict) or not any(registered.get(key) is not None for key in pricing_keys):
+            return None
         try:
             return litellm.get_model_info(model=model_id)
-        except Exception:  # noqa: BLE001  # get_model_info raises for any id with no registered pricing
+        except Exception:  # noqa: BLE001  # get_model_info raises for ids it cannot resolve a provider for
             return None
 
     def update_environment_variables(
@@ -2443,7 +2470,7 @@ class Logging(LiteLLMLoggingBaseClass):
                 ) = await _handle_completed_batch(
                     batch=result,
                     custom_llm_provider=self.custom_llm_provider,
-                    model_name=self.model,
+                    model_name=self.get_deployment_model_for_cost(),
                     litellm_params=self.litellm_params,
                     model_info=self.get_router_deployment_model_info(),
                 )
