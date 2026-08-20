@@ -614,9 +614,10 @@ class TestRetrieveBatchCostPassesModelIdentity:
             output_file_id="file-out",
         )
 
+        handler = getattr(obj, "_async_success_handler_body", None) or obj.async_success_handler
         try:
             with contextlib.suppress(Exception):
-                await obj._async_success_handler_body(result=batch, start_time=None, end_time=None)
+                await handler(result=batch, start_time=None, end_time=None)
         finally:
             litellm.model_cost.pop(deployment_id, None)
 
