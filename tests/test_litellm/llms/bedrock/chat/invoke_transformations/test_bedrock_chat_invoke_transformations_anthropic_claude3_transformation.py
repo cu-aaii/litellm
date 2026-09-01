@@ -542,3 +542,30 @@ def test_output_format_removed_from_bedrock_invoke_request():
     assert (
         "output_format" not in result
     ), f"output_format should be removed for Bedrock Invoke, got keys: {result.keys()}"
+
+
+@pytest.mark.parametrize(
+    "model",
+    ["us.anthropic.claude-fable-5-1", "anthropic.claude-fable-5-1"],
+)
+def test_bedrock_chat_invoke_fable_5_1_response_format_uses_native_path(local_model_cost_map, model):
+    """Regression: Fable 5.1 rejects forced tool use, so invoke must skip the
+    tool-based structured-output stub and emit ``output_format`` instead of a
+    forced ``tool_choice``."""
+    result = AmazonAnthropicClaudeConfig().map_openai_params(
+        non_default_params={
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "test_schema",
+                    "schema": {"type": "object", "properties": {"result": {"type": "string"}}},
+                },
+            }
+        },
+        optional_params={},
+        model=model,
+        drop_params=False,
+    )
+
+    assert "output_format" in result
+    assert "tool_choice" not in result

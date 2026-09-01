@@ -6269,3 +6269,33 @@ def test_forced_tool_choice_gating_driven_by_model_map_flag(local_model_cost_map
     )
 
     assert result["tool_choice"] == {"type": "auto"}
+
+
+def test_response_format_tool_path_skips_forced_tool_choice_when_unsupported(local_model_cost_map, monkeypatch):
+    """Backstop: on the tool-based structured-output path, a model flagged
+    ``supports_forced_tool_use: false`` must not get the forced response-format
+    tool_choice the provider would 400 on."""
+    monkeypatch.setitem(
+        litellm.model_cost,
+        "claude-test-no-forced-tools",
+        {"litellm_provider": "anthropic", "mode": "chat", "supports_forced_tool_use": False},
+    )
+    config = AnthropicConfig()
+
+    result = config.map_openai_params(
+        non_default_params={
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "test_schema",
+                    "schema": {"type": "object", "properties": {"result": {"type": "string"}}},
+                },
+            }
+        },
+        optional_params={},
+        model="claude-test-no-forced-tools",
+        drop_params=False,
+    )
+
+    assert "tools" in result
+    assert "tool_choice" not in result
