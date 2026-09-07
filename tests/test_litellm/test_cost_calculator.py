@@ -24,7 +24,7 @@ from litellm.types.utils import (
     PromptTokensDetailsWrapper,
     Usage,
 )
-from litellm.utils import TranscriptionResponse
+from litellm.utils import TranscriptionResponse, supports_prompt_caching
 
 
 @pytest.fixture
@@ -235,6 +235,48 @@ def test_github_copilot_mai_code_1_flash_pricing(_local_model_cost_map, model):
 
     assert prompt_usd == pytest.approx((800 * 7.5e-07) + (200 * 7.5e-08))
     assert completion_usd == pytest.approx(500 * 4.5e-06)
+
+
+GEMINI_LIVE_NATIVE_AUDIO_CASES: Final = (
+    ("gemini-live-2.5-flash-native-audio", "vertex_ai"),
+    ("gemini-live-2.5-flash-preview-native-audio-09-2025", "vertex_ai"),
+    ("gemini/gemini-live-2.5-flash-preview-native-audio-09-2025", "gemini"),
+)
+
+
+@pytest.mark.parametrize(("model", "provider"), GEMINI_LIVE_NATIVE_AUDIO_CASES)
+def test_gemini_live_native_audio_bills_no_live_specific_cached_rate(
+    _local_model_cost_map: None, model: str, provider: str
+) -> None:
+    """Google lists no Live or native-audio model under either implicit or explicit context caching,
+    and its pricing page prints N/A in both cached-input columns for every Gemini 2.5 Flash Live API
+    row, so these entries must carry no cached rate of their own. A cached count therefore leaves
+    the bill at the fresh input rate, the same as every other model with no published cached price,
+    instead of applying the 7.5e-08 two of them used to carry."""
+    prompt_usd, _ = cost_per_token(
+        model=model,
+        prompt_tokens=101_000,
+        completion_tokens=0,
+        custom_llm_provider=provider,
+        usage_object=Usage(
+            prompt_tokens=101_000,
+            completion_tokens=0,
+            prompt_tokens_details=PromptTokensDetailsWrapper(cached_tokens=100_000),
+        ),
+    )
+
+    assert prompt_usd == pytest.approx(1_000 * 5e-07)
+
+
+@pytest.mark.parametrize(("model", "provider"), GEMINI_LIVE_NATIVE_AUDIO_CASES)
+def test_gemini_live_native_audio_does_not_advertise_prompt_caching(
+    _local_model_cost_map: None, model: str, provider: str
+) -> None:
+    """The capability claim is what made the absent rate read as a pricing bug. Both assertions have
+    to live together: supports_prompt_caching answers False on any lookup error, so the 2.5 Flash
+    control is what proves the Live answer is the flag being gone and not a swallowed exception."""
+    assert supports_prompt_caching(model=model, custom_llm_provider=provider) is False
+    assert supports_prompt_caching(model="gemini-2.5-flash", custom_llm_provider="vertex_ai") is True
 
 
 def test_cost_calculator_with_usage(_local_model_cost_map, monkeypatch):
