@@ -5356,7 +5356,7 @@
         "max_input_tokens": 32000,
         "max_output_tokens": 4096,
         "max_tokens": 4096,
-        "mode": "chat",
+        "mode": "realtime",
         "output_cost_per_audio_token": 6.4e-05,
         "output_cost_per_token": 2.4e-05,
         "supported_endpoints": [
@@ -5388,7 +5388,7 @@
         "max_input_tokens": 32000,
         "max_output_tokens": 4096,
         "max_tokens": 4096,
-        "mode": "chat",
+        "mode": "realtime",
         "output_cost_per_audio_token": 6.4e-05,
         "output_cost_per_token": 2.4e-05,
         "supported_endpoints": [
@@ -5420,7 +5420,7 @@
         "max_input_tokens": 32000,
         "max_output_tokens": 4096,
         "max_tokens": 4096,
-        "mode": "chat",
+        "mode": "realtime",
         "output_cost_per_audio_token": 2e-05,
         "output_cost_per_token": 2.4e-06,
         "supported_endpoints": [
@@ -20919,10 +20919,25 @@
             "search_context_size_medium": 0.035,
             "search_context_size_high": 0.035
         },
-        "gemini_native_audio": true
+        "gemini_native_audio": true,
+        "input_cost_per_image_token": 3e-06,
+        "supported_regions": [
+            "us-central1",
+            "us-east1",
+            "us-east4",
+            "us-east5",
+            "us-south1",
+            "us-west1",
+            "us-west4",
+            "europe-central2",
+            "europe-north1",
+            "europe-west1",
+            "europe-west4"
+        ],
+        "cache_read_input_token_cost": 5e-08
     },
     "gemini-live-2.5-flash-preview-native-audio-09-2025": {
-        "cache_read_input_token_cost": 7.5e-08,
+        "cache_read_input_token_cost": 5e-08,
         "input_cost_per_audio_token": 3e-06,
         "input_cost_per_token": 5e-07,
         "litellm_provider": "vertex_ai-language-models",
@@ -20966,7 +20981,7 @@
         "gemini_native_audio": true
     },
     "gemini/gemini-live-2.5-flash-preview-native-audio-09-2025": {
-        "cache_read_input_token_cost": 7.5e-08,
+        "cache_read_input_token_cost": 5e-08,
         "input_cost_per_audio_token": 3e-06,
         "input_cost_per_token": 5e-07,
         "litellm_provider": "gemini",
@@ -50043,7 +50058,7 @@
         "max_input_tokens": 1048576,
         "max_output_tokens": 8192,
         "max_tokens": 8192,
-        "mode": "chat",
+        "mode": "realtime",
         "output_cost_per_audio_token": 1.2e-05,
         "output_cost_per_token": 2e-06,
         "source": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -50069,7 +50084,7 @@
         "max_input_tokens": 1048576,
         "max_output_tokens": 8192,
         "max_tokens": 8192,
-        "mode": "chat",
+        "mode": "realtime",
         "output_cost_per_audio_token": 1.2e-05,
         "output_cost_per_token": 2e-06,
         "source": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -50095,7 +50110,7 @@
         "max_input_tokens": 1048576,
         "max_output_tokens": 8192,
         "max_tokens": 8192,
-        "mode": "chat",
+        "mode": "realtime",
         "output_cost_per_audio_token": 1.2e-05,
         "output_cost_per_token": 2e-06,
         "source": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -50123,7 +50138,7 @@
         "max_input_tokens": 131072,
         "max_output_tokens": 65536,
         "max_tokens": 65536,
-        "mode": "chat",
+        "mode": "realtime",
         "output_cost_per_audio_token": 1.2e-05,
         "output_cost_per_token": 4.5e-06,
         "source": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -50154,7 +50169,7 @@
         "max_input_tokens": 1048576,
         "max_output_tokens": 8192,
         "max_tokens": 8192,
-        "mode": "chat",
+        "mode": "realtime",
         "output_cost_per_audio_token": 1.2e-05,
         "output_cost_per_token": 2e-06,
         "source": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -50182,7 +50197,7 @@
         "max_input_tokens": 1048576,
         "max_output_tokens": 8192,
         "max_tokens": 8192,
-        "mode": "chat",
+        "mode": "realtime",
         "output_cost_per_audio_token": 1.2e-05,
         "output_cost_per_token": 2e-06,
         "source": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -50210,7 +50225,7 @@
         "max_input_tokens": 1048576,
         "max_output_tokens": 8192,
         "max_tokens": 8192,
-        "mode": "chat",
+        "mode": "realtime",
         "output_cost_per_audio_token": 1.2e-05,
         "output_cost_per_token": 2e-06,
         "source": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -50240,7 +50255,7 @@
         "max_input_tokens": 131072,
         "max_output_tokens": 65536,
         "max_tokens": 65536,
-        "mode": "chat",
+        "mode": "realtime",
         "output_cost_per_audio_token": 1.2e-05,
         "output_cost_per_token": 4.5e-06,
         "source": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -55604,5 +55619,159 @@
         "max_tokens": 40960,
         "mode": "embedding",
         "source": "https://docs.fireworks.ai/serverless/pricing"
+    },
+    "gemini-live-2.5-flash": {
+        "cache_read_input_token_cost": 5e-08,
+        "input_cost_per_audio_token": 3e-06,
+        "input_cost_per_image_token": 3e-06,
+        "input_cost_per_token": 5e-07,
+        "output_cost_per_audio_token": 1.2e-05,
+        "output_cost_per_token": 2e-06,
+        "litellm_provider": "vertex_ai-language-models",
+        "max_input_tokens": 1048576,
+        "max_output_tokens": 65535,
+        "max_tokens": 65535,
+        "mode": "realtime",
+        "source": "https://cloud.google.com/vertex-ai/generative-ai/pricing",
+        "supported_endpoints": [
+            "/v1/realtime",
+            "/vertex_ai/live"
+        ],
+        "supported_modalities": [
+            "text",
+            "image",
+            "audio",
+            "video"
+        ],
+        "supports_audio_input": true,
+        "supports_audio_output": true,
+        "supports_function_calling": true,
+        "supports_parallel_function_calling": true,
+        "supports_pdf_input": true,
+        "supports_prompt_caching": true,
+        "supports_response_schema": true,
+        "supports_system_messages": true,
+        "supports_tool_choice": true,
+        "supports_url_context": true,
+        "supports_vision": true,
+        "supports_web_search": true,
+        "search_context_cost_per_query": {
+            "search_context_size_low": 0.035,
+            "search_context_size_medium": 0.035,
+            "search_context_size_high": 0.035
+        },
+        "supported_output_modalities": [
+            "text",
+            "audio"
+        ],
+        "supported_regions": [
+            "global"
+        ]
+    },
+    "vertex_ai/gemini-live-2.5-flash": {
+        "cache_read_input_token_cost": 5e-08,
+        "input_cost_per_audio_token": 3e-06,
+        "input_cost_per_image_token": 3e-06,
+        "input_cost_per_token": 5e-07,
+        "output_cost_per_audio_token": 1.2e-05,
+        "output_cost_per_token": 2e-06,
+        "litellm_provider": "vertex_ai",
+        "max_input_tokens": 1048576,
+        "max_output_tokens": 65535,
+        "max_tokens": 65535,
+        "mode": "realtime",
+        "source": "https://cloud.google.com/vertex-ai/generative-ai/pricing",
+        "supported_endpoints": [
+            "/v1/realtime",
+            "/vertex_ai/live"
+        ],
+        "supported_modalities": [
+            "text",
+            "image",
+            "audio",
+            "video"
+        ],
+        "supports_audio_input": true,
+        "supports_audio_output": true,
+        "supports_function_calling": true,
+        "supports_parallel_function_calling": true,
+        "supports_pdf_input": true,
+        "supports_prompt_caching": true,
+        "supports_response_schema": true,
+        "supports_system_messages": true,
+        "supports_tool_choice": true,
+        "supports_url_context": true,
+        "supports_vision": true,
+        "supports_web_search": true,
+        "search_context_cost_per_query": {
+            "search_context_size_low": 0.035,
+            "search_context_size_medium": 0.035,
+            "search_context_size_high": 0.035
+        },
+        "supported_output_modalities": [
+            "text",
+            "audio"
+        ],
+        "supported_regions": [
+            "global"
+        ]
+    },
+    "vertex_ai/gemini-live-2.5-flash-native-audio": {
+        "cache_read_input_token_cost": 5e-08,
+        "input_cost_per_audio_token": 3e-06,
+        "input_cost_per_image_token": 3e-06,
+        "input_cost_per_token": 5e-07,
+        "output_cost_per_audio_token": 1.2e-05,
+        "output_cost_per_token": 2e-06,
+        "litellm_provider": "vertex_ai",
+        "max_input_tokens": 1048576,
+        "max_output_tokens": 65535,
+        "max_tokens": 65535,
+        "mode": "realtime",
+        "source": "https://cloud.google.com/vertex-ai/generative-ai/pricing",
+        "supported_endpoints": [
+            "/v1/realtime",
+            "/vertex_ai/live"
+        ],
+        "supported_modalities": [
+            "text",
+            "image",
+            "audio",
+            "video"
+        ],
+        "supports_audio_input": true,
+        "supports_audio_output": true,
+        "supports_function_calling": true,
+        "supports_parallel_function_calling": true,
+        "supports_pdf_input": true,
+        "supports_prompt_caching": true,
+        "supports_response_schema": true,
+        "supports_system_messages": true,
+        "supports_tool_choice": true,
+        "supports_url_context": true,
+        "supports_vision": true,
+        "supports_web_search": true,
+        "search_context_cost_per_query": {
+            "search_context_size_low": 0.035,
+            "search_context_size_medium": 0.035,
+            "search_context_size_high": 0.035
+        },
+        "supported_output_modalities": [
+            "audio"
+        ],
+        "supported_regions": [
+            "us-central1",
+            "us-east1",
+            "us-east4",
+            "us-east5",
+            "us-south1",
+            "us-west1",
+            "us-west4",
+            "europe-central2",
+            "europe-north1",
+            "europe-west1",
+            "europe-west4"
+        ],
+        "gemini_native_audio": true
     }
 }
