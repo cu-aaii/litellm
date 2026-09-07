@@ -299,10 +299,7 @@ GPT_REALTIME_2_FAMILY: Final = (
 
 
 def test_gpt_realtime_2_family_prices_audio_cache_writes_and_reads_alike(_local_model_cost_map: None) -> None:
-    """Azure publishes one cached-audio meter per gpt-realtime-2 deployment, charged at the same rate for
-    the write that populates the cache and the read that hits it. azure/gpt-realtime-2 carried only the
-    read side, so it was the one family member reporting no cache-creation audio price for a deployment
-    whose meter publishes one."""
+    """Azure publishes one cached-audio meter per gpt-realtime-2 deployment, so the write rate equals the read."""
     audio_cache_rates: Final = {
         model: (
             litellm.model_cost[model].get("cache_read_input_audio_token_cost"),
@@ -326,12 +323,7 @@ GEMINI_LIVE_NATIVE_AUDIO_CASES: Final = (
 def test_gemini_live_native_audio_carries_no_cached_input_rate(
     _local_model_cost_map: None, model: str, provider: str
 ) -> None:
-    """Google publishes no cached-input price for the Live API. Its pricing table prints N/A in both
-    cached columns for every Gemini 2.5 Flash Live API row, and no Live or native-audio model appears
-    under either implicit or explicit context caching. Two of these entries priced a cached read at
-    7.5e-08 regardless, which billed 0.008 here. With no invented rate the cached tokens drop out of
-    the bill, which is inert in practice because Vertex reports no cachedContentTokenCount on a Live
-    session."""
+    """Google prints N/A in both cached columns for every Live API row, so no cached-input rate can be charged."""
     assert litellm.get_model_info(model, custom_llm_provider=provider)["cache_read_input_token_cost"] is None
 
     prompt_usd, _ = cost_per_token(
@@ -346,21 +338,19 @@ def test_gemini_live_native_audio_carries_no_cached_input_rate(
         ),
     )
 
-    assert prompt_usd == pytest.approx(1_000 * 5e-07)
+    assert prompt_usd == pytest.approx(1_000 * 5e-07), "the 100k cached tokens drop out with no cached rate to charge"
 
 
 @pytest.mark.parametrize(("model", "provider"), GEMINI_LIVE_NATIVE_AUDIO_CASES)
 def test_gemini_live_native_audio_declares_prompt_caching_unsupported(
     _local_model_cost_map: None, model: str, provider: str
 ) -> None:
-    """The capability claim is what made the absent cached rate read as a pricing gap rather than a
-    vendor limitation. The flag has to say False rather than go missing: get_model_info maps an absent
-    key to None, which is how this map spells "nobody checked", where False records the vendor's
-    documented no. The 2.5 Flash control is load-bearing because supports_prompt_caching turns any
-    lookup error into False, so without it a broken lookup would read as a pass."""
+    """The vendor's documented no has to be recorded as False, since an absent key reads back as None."""
     assert litellm.get_model_info(model, custom_llm_provider=provider)["supports_prompt_caching"] is False
     assert supports_prompt_caching(model=model, custom_llm_provider=provider) is False
-    assert supports_prompt_caching(model="gemini-2.5-flash", custom_llm_provider="vertex_ai") is True
+    assert supports_prompt_caching(model="gemini-2.5-flash", custom_llm_provider="vertex_ai") is True, (
+        "control: the helper swallows a lookup error into False, so without this a broken lookup reads as a pass"
+    )
 
 
 def test_cost_calculator_with_usage(_local_model_cost_map, monkeypatch):
@@ -4460,14 +4450,7 @@ def test_gemini_live_native_audio_ga_realtime_cost(_local_model_cost_map: None) 
 def test_gemini_live_native_audio_limits_and_capabilities_match_vendor_model_card(
     _local_model_cost_map: None, model: str
 ) -> None:
-    """Google's card for model ID gemini-live-2.5-flash-native-audio gives a 128K context window and
-    64K maximum output tokens, and marks structured output and URL context as not supported. Its
-    modality list is text, image, audio and video, with no document input, so pdf input cannot be
-    advertised either. The entry claimed a 1M window, an off-by-one 65535 output cap, and all three
-    capabilities.
-
-    Both ids resolve to the one bare entry, which is why no vertex_ai/-prefixed twin is needed.
-    """
+    """Google's card for model ID gemini-live-2.5-flash-native-audio is the source for these limits and flags."""
     info = litellm.get_model_info(model)
 
     assert info["max_input_tokens"] == 131072
