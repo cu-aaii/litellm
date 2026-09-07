@@ -37,7 +37,7 @@ from litellm.llms.custom_httpx.http_handler import get_async_httpx_client
 from litellm.llms.vertex_ai.vertex_llm_base import VertexBase
 from litellm.passthrough.main import AsyncPassthroughStreamingResponse
 from litellm.proxy._types import *
-from litellm.proxy.auth.auth_checks import enforced_model_allowlists
+from litellm.proxy.auth.auth_checks import can_key_call_resolved_model, enforced_model_allowlists
 from litellm.proxy.auth.handle_jwt import JWTHandler
 from litellm.proxy.auth.route_checks import RouteChecks
 from litellm.proxy.auth.user_api_key_auth import (
@@ -59,6 +59,7 @@ from litellm.proxy.common_utils.sse_keepalive import (
 from litellm.proxy.pass_through_endpoints.common_utils import get_litellm_virtual_key
 from litellm.proxy.pass_through_endpoints.pass_through_endpoints import (
     HttpPassThroughEndpointHelpers,
+    WebsocketClientFrameGate,
     create_pass_through_route,
     create_websocket_passthrough_route,
     websocket_passthrough_request,
@@ -2683,6 +2684,10 @@ VERTEX_LIVE_UNCONFIGURED_CLOSE_REASON: Final = (
     "Vertex AI auth failed: set a use_in_pass_through vertex model, default_vertex_config, or DEFAULT_VERTEXAI_* env"
 )
 
+VERTEX_LIVE_UNVERIFIED_MODEL_CLOSE_REASON: Final = (
+    "Could not check your key's access to the model this setup frame names; ask a proxy admin to read the logs"
+)
+
 VERTEX_PUBLISHER_MODEL_PREFIX: Final = "publishers/google/models/"
 
 VERTEX_PUBLISHERS_SEGMENT: Final = "publishers/"
@@ -2705,6 +2710,82 @@ def _get_llm_router() -> Router | None:
     from litellm.proxy.proxy_server import llm_router
 
     return llm_router
+
+
+def _get_llm_model_list() -> list | None:
+    from litellm.proxy.proxy_server import llm_model_list
+
+    return llm_model_list
+
+
+def _may_carry_vertex_live_setup(frame_data: str | bytes) -> bool:
+    """
+    Whether a frame is worth parsing: audio and video frames stream continuously and are large, and one that
+    cannot spell ``setup`` cannot carry one. A backslash means the key may be escaped, which only a parse settles
+    """
+    if isinstance(frame_data, bytes):
+        return b'"setup"' in frame_data or b"\\" in frame_data
+    return '"setup"' in frame_data or "\\" in frame_data
+
+
+def _vertex_live_setup_model(frame_data: str | bytes) -> str | None:
+    """
+    The model a Vertex AI Live ``setup`` frame names, which is the only place BidiGenerateContent carries one
+    """
+    if not _may_carry_vertex_live_setup(frame_data):
+        return None
+    try:
+        frame: Final = json.loads(frame_data)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    setup: Final = frame.get("setup") if isinstance(frame, dict) else None
+    model: Final = setup.get("model") if isinstance(setup, dict) else None
+    return model if isinstance(model, str) and model else None
+
+
+def _build_vertex_live_client_frame_gate(
+    llm_model_list: list | None,
+    llm_router: Router | None,
+) -> WebsocketClientFrameGate:
+    """
+    Apply the key's, team's and project's model access to the model a client's ``setup`` frame names.
+
+    ``?model=`` is optional on this route and the Live protocol carries the real model in the first client
+    frame, so connect-time auth has no model to check and every frame that names one has to be authorized
+    here instead
+    """
+
+    async def gate(frame_data: str | bytes, valid_token: UserAPIKeyAuth, /) -> ProxyException | None:
+        model: Final = _vertex_live_setup_model(frame_data)
+        if model is None:
+            return None
+        try:
+            await can_key_call_resolved_model(
+                model=model,
+                llm_model_list=llm_model_list,
+                valid_token=valid_token,
+                llm_router=llm_router,
+            )
+        except ProxyException as denial:
+            # A close frame carries 123 bytes, so the model leads: the tail of the allowlist dump is what a
+            # caller can most afford to lose
+            return ProxyException(
+                message=f"{model}: {denial.message}",
+                type=denial.type,
+                param=denial.param,
+                code=denial.code,
+            )
+        except Exception:  # noqa: BLE001  # fail closed: a gate that cannot answer refuses, and says so in band
+            verbose_proxy_logger.exception("Vertex AI Live passthrough: model access check failed for %s", model)
+            return ProxyException(
+                message=VERTEX_LIVE_UNVERIFIED_MODEL_CLOSE_REASON,
+                type=ProxyErrorTypes.internal_server_error,
+                param="model",
+                code=500,
+            )
+        return None
+
+    return gate
 
 
 def _resolve_vertex_live_credentials(
@@ -2887,6 +2968,10 @@ async def vertex_ai_live_websocket_passthrough(
         setup_model_rewriter=_build_vertex_live_setup_model_rewriter(
             vertex_project=resolved_project,
             vertex_location=resolved_location,
+            llm_router=_get_llm_router(),
+        ),
+        client_frame_gate=_build_vertex_live_client_frame_gate(
+            llm_model_list=_get_llm_model_list(),
             llm_router=_get_llm_router(),
         ),
     )
