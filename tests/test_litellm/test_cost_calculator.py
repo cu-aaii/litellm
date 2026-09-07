@@ -25,7 +25,7 @@ from litellm.types.utils import (
     PromptTokensDetailsWrapper,
     Usage,
 )
-from litellm.utils import TranscriptionResponse
+from litellm.utils import TranscriptionResponse, supports_prompt_caching
 
 
 @pytest.fixture
@@ -286,6 +286,81 @@ def test_github_copilot_mai_code_1_flash_pricing(_local_model_cost_map, model):
 
     assert prompt_usd == pytest.approx((800 * 7.5e-07) + (200 * 7.5e-08))
     assert completion_usd == pytest.approx(500 * 4.5e-06)
+
+
+GPT_REALTIME_2_FAMILY: Final = (
+    "azure/gpt-realtime-2",
+    "azure/gpt-realtime-2.1",
+    "azure/gpt-realtime-2.1-mini",
+    "gpt-realtime-2",
+    "gpt-realtime-2.1",
+    "gpt-realtime-2.1-mini",
+)
+
+
+def test_gpt_realtime_2_family_prices_audio_cache_writes_and_reads_alike(_local_model_cost_map: None) -> None:
+    """Azure publishes one cached-audio meter per gpt-realtime-2 deployment, charged at the same rate for
+    the write that populates the cache and the read that hits it. azure/gpt-realtime-2 carried only the
+    read side, so it was the one family member reporting no cache-creation audio price for a deployment
+    whose meter publishes one."""
+    audio_cache_rates: Final = {
+        model: (
+            litellm.model_cost[model].get("cache_read_input_audio_token_cost"),
+            litellm.model_cost[model].get("cache_creation_input_audio_token_cost"),
+        )
+        for model in GPT_REALTIME_2_FAMILY
+    }
+
+    assert all(read is not None and write == read for read, write in audio_cache_rates.values()), audio_cache_rates
+    assert audio_cache_rates["azure/gpt-realtime-2"] == (4e-07, 4e-07)
+
+
+GEMINI_LIVE_NATIVE_AUDIO_CASES: Final = (
+    ("gemini-live-2.5-flash-native-audio", "vertex_ai"),
+    ("gemini-live-2.5-flash-preview-native-audio-09-2025", "vertex_ai"),
+    ("gemini/gemini-live-2.5-flash-preview-native-audio-09-2025", "gemini"),
+)
+
+
+@pytest.mark.parametrize(("model", "provider"), GEMINI_LIVE_NATIVE_AUDIO_CASES)
+def test_gemini_live_native_audio_carries_no_cached_input_rate(
+    _local_model_cost_map: None, model: str, provider: str
+) -> None:
+    """Google publishes no cached-input price for the Live API. Its pricing table prints N/A in both
+    cached columns for every Gemini 2.5 Flash Live API row, and no Live or native-audio model appears
+    under either implicit or explicit context caching. Two of these entries priced a cached read at
+    7.5e-08 regardless, which billed 0.008 here. With no invented rate the cached tokens drop out of
+    the bill, which is inert in practice because Vertex reports no cachedContentTokenCount on a Live
+    session."""
+    assert litellm.get_model_info(model, custom_llm_provider=provider)["cache_read_input_token_cost"] is None
+
+    prompt_usd, _ = cost_per_token(
+        model=model,
+        prompt_tokens=101_000,
+        completion_tokens=0,
+        custom_llm_provider=provider,
+        usage_object=Usage(
+            prompt_tokens=101_000,
+            completion_tokens=0,
+            prompt_tokens_details=PromptTokensDetailsWrapper(cached_tokens=100_000),
+        ),
+    )
+
+    assert prompt_usd == pytest.approx(1_000 * 5e-07)
+
+
+@pytest.mark.parametrize(("model", "provider"), GEMINI_LIVE_NATIVE_AUDIO_CASES)
+def test_gemini_live_native_audio_declares_prompt_caching_unsupported(
+    _local_model_cost_map: None, model: str, provider: str
+) -> None:
+    """The capability claim is what made the absent cached rate read as a pricing gap rather than a
+    vendor limitation. The flag has to say False rather than go missing: get_model_info maps an absent
+    key to None, which is how this map spells "nobody checked", where False records the vendor's
+    documented no. The 2.5 Flash control is load-bearing because supports_prompt_caching turns any
+    lookup error into False, so without it a broken lookup would read as a pass."""
+    assert litellm.get_model_info(model, custom_llm_provider=provider)["supports_prompt_caching"] is False
+    assert supports_prompt_caching(model=model, custom_llm_provider=provider) is False
+    assert supports_prompt_caching(model="gemini-2.5-flash", custom_llm_provider="vertex_ai") is True
 
 
 def test_cost_calculator_with_usage(_local_model_cost_map, monkeypatch):
