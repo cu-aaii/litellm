@@ -311,6 +311,9 @@ GEMINI_LIVE_NATIVE_AUDIO_CASES: Final = (
     ("gemini-live-2.5-flash-native-audio", "vertex_ai"),
     ("gemini-live-2.5-flash-preview-native-audio-09-2025", "vertex_ai"),
     ("gemini/gemini-live-2.5-flash-preview-native-audio-09-2025", "gemini"),
+    ("gemini-live-2.5-flash", "vertex_ai"),
+    ("vertex_ai/gemini-live-2.5-flash", "vertex_ai"),
+    ("vertex_ai/gemini-live-2.5-flash-native-audio", "vertex_ai"),
 )
 
 
