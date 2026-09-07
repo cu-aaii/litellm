@@ -2680,6 +2680,17 @@ class WebsocketFrameModelGate(Protocol):
     async def __call__(self, websocket: WebSocket, model: str, /) -> WebsocketFrameModelVerdict: ...
 
 
+class WebsocketClientFrameGate(Protocol):
+    """Authorize one client frame, returning the denial to report or ``None`` to let it through.
+
+    A websocket passthrough authenticates before any frame arrives, so a protocol that names its model
+    inside a frame has no model to authorize at connect time. The frame, not the extracted model, is the
+    argument because where a model sits is part of each provider's wire protocol
+    """
+
+    async def __call__(self, frame_data: str | bytes, valid_token: UserAPIKeyAuth, /) -> ProxyException | None: ...
+
+
 WebsocketUpstreamFrameClassifier: TypeAlias = Callable[[Mapping[str, object]], WebsocketUpstreamFrameKind]
 _SESSION_FRAMES_EVERY_ROW_CARRIES: Final[frozenset[WebsocketUpstreamFrameKind]] = frozenset(
     {"opens_session", "updates_session"}
@@ -3007,6 +3018,24 @@ async def _relay_client_frame(
     return verdict
 
 
+async def _refused_client_frame(
+    websocket: WebSocket,
+    frame_data: str | bytes,
+    gate: WebsocketClientFrameGate | None,
+    valid_token: UserAPIKeyAuth,
+) -> ProxyException | None:
+    """Refuse one client frame the gate denies, handing back the denial that ended the session.
+
+    The denial travels out so the caller reports a failed session instead of leaving the success hooks to
+    record a refusal as a success, and tearing the upstream down is the caller's job: awaiting that close
+    here lets the upstream reader finish first, which cancels this task mid-close and loses the denial
+    """
+    refusal: Final = None if gate is None else await gate(frame_data, valid_token)
+    if refusal is not None:
+        await websocket.close(code=CloseCode.POLICY_VIOLATION, reason=truncated_close_reason(refusal.message))
+    return refusal
+
+
 _EXPLICIT_SUCCESS_KWARGS: Final = frozenset({"logging_obj", "passthrough_logging_payload", "custom_llm_provider"})
 WALKOUT_TURN_DRAIN_SECONDS: Final = 600.0
 
@@ -3038,6 +3067,7 @@ async def websocket_passthrough_request(
     builtin_provider_route: bool = False,
     model: str | None = None,
     meter: WebSocketSessionMeter | None = None,
+    client_frame_gate: WebsocketClientFrameGate | None = None,
 ):
     """
     WebSocket passthrough request handler.
@@ -3059,6 +3089,7 @@ async def websocket_passthrough_request(
         builtin_provider_route: Whether a built-in provider route serves the connection, so its URL names the provider
         model: The model the caller named before connecting, logged on a failure before the setup frame arrives
         meter: Prices the session from the client text frames delivered upstream, for an upstream that reports no usage
+        client_frame_gate: Optional per-frame authorization, applied before a frame reaches the upstream
     """
     from litellm.litellm_core_utils.litellm_logging import Logging
     from litellm.proxy.proxy_server import proxy_config, proxy_logging_obj
@@ -3289,8 +3320,8 @@ async def websocket_passthrough_request(
                 "WebSocket passthrough (%s): Upstream connection established successfully", endpoint
             )
 
-            async def forward_client_to_upstream() -> None:
-                """Forward messages from client to upstream WebSocket"""
+            async def forward_client_to_upstream() -> ProxyException | None:
+                """Forward messages from client to upstream WebSocket, returning any denial that ended it"""
                 nonlocal metered_total
                 try:
                     while True:
@@ -3359,6 +3390,12 @@ async def websocket_passthrough_request(
                                     )
                                     # Not a JSON message or doesn't contain setup data
 
+                            if (
+                                text_refusal := await _refused_client_frame(
+                                    websocket, text_data, client_frame_gate, user_api_key_dict
+                                )
+                            ) is not None:
+                                return text_refusal
                             if isinstance(
                                 await _relay_client_frame(
                                     websocket,
@@ -3373,6 +3410,12 @@ async def websocket_passthrough_request(
                                 break
                             metered_total += _metered_client_text(meter, text_data)
                         elif bytes_data is not None:
+                            if (
+                                bytes_refusal := await _refused_client_frame(
+                                    websocket, bytes_data, client_frame_gate, user_api_key_dict
+                                )
+                            ) is not None:
+                                return bytes_refusal
                             if isinstance(
                                 await _relay_client_frame(
                                     websocket, upstream_ws, bytes_data, bytes_data, client_frame_model_gate, ledger
@@ -3495,13 +3538,36 @@ async def websocket_passthrough_request(
                 except asyncio.CancelledError:
                     pass
 
+            task_results: Final = tuple(task.result() for task in done if task.exception() is None)
+
+            # A refusal outranks any exception it caused: closing the client socket is what makes the
+            # upstream reader's next send fail, so raising that instead would report the wrong cause
+            client_frame_refusal: Final = next(
+                (result for result in task_results if isinstance(result, ProxyException)), None
+            )
+            if client_frame_refusal is not None:
+                await upstream_ws.close()
+                await proxy_logging_obj.post_call_failure_hook(
+                    user_api_key_dict=user_api_key_dict,
+                    original_exception=client_frame_refusal,
+                    request_data=_build_passthrough_failure_request_payload(
+                        parsed_body=None if model is None else {"model": model},
+                        kwargs=kwargs,
+                        logging_obj=logging_obj,
+                        custom_llm_provider=None,
+                        url=httpx.URL(target),
+                        builtin_provider_route=builtin_provider_route,
+                    ),
+                )
+                return
+
             # Check for exceptions in completed tasks
             for task in done:
                 exception = task.exception()
                 if exception is not None:
                     raise exception
 
-            upstream_close: Final = _upstream_close_to_relay(task.result() for task in done)
+            upstream_close: Final = _upstream_close_to_relay(task_results)
             if upstream_close is not None and _client_socket_is_open(websocket):
                 await websocket.close(
                     code=upstream_close.code,
