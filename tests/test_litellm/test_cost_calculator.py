@@ -278,9 +278,15 @@ def test_gemini_live_native_audio_does_not_advertise_prompt_caching(
 ) -> None:
     """The capability claim is what made the absent rate read as a pricing bug. Both assertions have
     to live together: supports_prompt_caching answers False on any lookup error, so the 2.5 Flash
-    control is what proves the Live answer is the flag being gone and not a swallowed exception."""
+    control is what proves the Live answer is the flag being gone and not a swallowed exception.
+
+    The entry must say false rather than say nothing. get_model_info reads the field with a None
+    default, so an absent key reports "nobody checked" where false records the vendor's documented
+    no, and only the second is a claim a reader can act on. The two spellings are indistinguishable
+    through supports_prompt_caching itself, which is why the get_model_info assertion is here."""
     assert supports_prompt_caching(model=model, custom_llm_provider=provider) is False
     assert supports_prompt_caching(model="gemini-2.5-flash", custom_llm_provider="vertex_ai") is True
+    assert litellm.get_model_info(model)["supports_prompt_caching"] is False
 
 
 def test_cost_calculator_with_usage(_local_model_cost_map, monkeypatch):
