@@ -21076,11 +21076,9 @@
             "europe-north1",
             "europe-west1",
             "europe-west4"
-        ],
-        "cache_read_input_token_cost": 5e-08
+        ]
     },
     "gemini-live-2.5-flash-preview-native-audio-09-2025": {
-        "cache_read_input_token_cost": 5e-08,
         "input_cost_per_audio_token": 3e-06,
         "input_cost_per_token": 5e-07,
         "litellm_provider": "vertex_ai-language-models",
@@ -21124,7 +21122,6 @@
         "gemini_native_audio": true
     },
     "gemini/gemini-live-2.5-flash-preview-native-audio-09-2025": {
-        "cache_read_input_token_cost": 5e-08,
         "input_cost_per_audio_token": 3e-06,
         "input_cost_per_token": 5e-07,
         "litellm_provider": "gemini",
@@ -55833,7 +55830,6 @@
         "source": "https://docs.fireworks.ai/serverless/pricing"
     },
     "gemini-live-2.5-flash": {
-        "cache_read_input_token_cost": 5e-08,
         "input_cost_per_audio_token": 3e-06,
         "input_cost_per_image_token": 3e-06,
         "input_cost_per_token": 5e-07,
@@ -55881,7 +55877,6 @@
         ]
     },
     "vertex_ai/gemini-live-2.5-flash": {
-        "cache_read_input_token_cost": 5e-08,
         "input_cost_per_audio_token": 3e-06,
         "input_cost_per_image_token": 3e-06,
         "input_cost_per_token": 5e-07,
@@ -55929,7 +55924,6 @@
         ]
     },
     "vertex_ai/gemini-live-2.5-flash-native-audio": {
-        "cache_read_input_token_cost": 5e-08,
         "input_cost_per_audio_token": 3e-06,
         "input_cost_per_image_token": 3e-06,
         "input_cost_per_token": 5e-07,
