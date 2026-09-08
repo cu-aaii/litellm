@@ -73,6 +73,7 @@ from .passthrough_endpoint_router import PassthroughEndpointRouter
 
 if TYPE_CHECKING:
     from litellm.router import Router
+    from litellm.types.router import DeploymentTypedDict
 
 vertex_llm_base: Final = VertexBase()
 router: Final = APIRouter()
@@ -2589,6 +2590,26 @@ def _vertex_live_setup_model(frame_data: str | bytes) -> str | None:
     return model if isinstance(model, str) and model else None
 
 
+def _vertex_live_deployment(setup_model: str, llm_router: "Router | None") -> "DeploymentTypedDict | None":
+    """
+    The router deployment whose group a ``setup`` frame's model names, whichever addressing the client used.
+
+    The Live SDK wraps whatever the caller typed as ``models/<name>``, and clients also send LiteLLM ids and
+    full Vertex resource paths, so the group is read from the last segment as well as from the whole string
+    """
+    if llm_router is None:
+        return None
+    candidates: Final = (setup_model, setup_model.rsplit("/", 1)[-1])
+    return next(
+        (
+            deployment
+            for deployment in (llm_router.get_model_list() or ())
+            if deployment.get("model_name") in candidates
+        ),
+        None,
+    )
+
+
 def _build_vertex_live_client_frame_gate(
     llm_model_list: list | None,
     llm_router: "Router | None",
@@ -2598,16 +2619,21 @@ def _build_vertex_live_client_frame_gate(
 
     ``?model=`` is optional on this route and the Live protocol carries the real model in the first client
     frame, so connect-time auth has no model to check and every frame that names one has to be authorized
-    here instead
+    here instead.
+
+    The allowlists and the access groups behind them are keyed by model group, and every addressing a client
+    sends carries that group inside a prefix, so the group is what gets authorized. A frame naming no group
+    is still checked as it arrived, which is the strictest reading available for a name nothing recognises
     """
 
     async def gate(frame_data: str | bytes, valid_token: UserAPIKeyAuth, /) -> ProxyException | None:
         model: Final = _vertex_live_setup_model(frame_data)
         if model is None:
             return None
+        deployment: Final = _vertex_live_deployment(model, llm_router)
         try:
             await can_key_call_resolved_model(
-                model=model,
+                model=model if deployment is None else deployment["model_name"],
                 llm_model_list=llm_model_list,
                 valid_token=valid_token,
                 llm_router=llm_router,
@@ -2692,17 +2718,8 @@ def _resolve_alias_to_upstream_model(setup_model: str, llm_router: "Router | Non
     """
     The Live SDK wraps whatever the caller typed as ``models/<name>``, so a gateway alias arrives prefixed
     """
-    if llm_router is None:
-        return setup_model
-    candidates: Final = (setup_model, setup_model.rsplit("/", 1)[-1])
-    upstream: Final = next(
-        (
-            deployment["litellm_params"].get("model")
-            for deployment in (llm_router.get_model_list() or ())
-            if deployment.get("model_name") in candidates
-        ),
-        None,
-    )
+    deployment: Final = _vertex_live_deployment(setup_model, llm_router)
+    upstream: Final = None if deployment is None else deployment["litellm_params"].get("model")
     if upstream is None:
         return setup_model
     try:

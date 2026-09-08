@@ -5085,12 +5085,33 @@ def test_vertex_live_setup_resolution_is_inert_without_a_rewriter():
 VERTEX_LIVE_TARGET = "wss://aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent"
 
 
+VERTEX_LIVE_GROUP = "gemini-live-2.5-flash-native-audio"
+
+VERTEX_LIVE_ALIAS_GROUP = "gemini-live-native-audio"
+
+VERTEX_LIVE_CLIENT_ADDRESSINGS = (
+    "{model}",
+    "models/{model}",
+    "vertex_ai/{model}",
+    "publishers/google/models/{model}",
+    "projects/proj-db/locations/global/publishers/google/models/{model}",
+)
+
+
 def _vertex_live_router():
     return litellm.Router(
         model_list=[
             {
                 "model_name": "gemini-live-2.5-flash",
                 "litellm_params": {"model": "vertex_ai/gemini-live-2.5-flash"},
+            },
+            {
+                "model_name": VERTEX_LIVE_GROUP,
+                "litellm_params": {"model": f"vertex_ai/{VERTEX_LIVE_GROUP}"},
+            },
+            {
+                "model_name": VERTEX_LIVE_ALIAS_GROUP,
+                "litellm_params": {"model": f"vertex_ai/{VERTEX_LIVE_GROUP}"},
             },
             {
                 "model_name": "gemini-3-pro-live",
@@ -5252,6 +5273,118 @@ async def test_vertex_live_non_setup_frames_are_forwarded_without_a_model_check(
 
     assert upstream_ws.send.await_count == 2
     assert _policy_close_reason(websocket) is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("addressing", VERTEX_LIVE_CLIENT_ADDRESSINGS)
+@pytest.mark.parametrize("group", [VERTEX_LIVE_GROUP, VERTEX_LIVE_ALIAS_GROUP])
+async def test_vertex_live_setup_frame_authorizes_a_permitted_group_in_every_addressing(addressing, group):
+    """
+    The Live SDK wraps the caller's model as ``models/<name>`` and the docs tell callers to send the full
+    resource path, so a key holding the group has to work whichever addressing its client actually sends
+    """
+    websocket, upstream_ws = await _run_vertex_live_gated_passthrough(
+        [_setup_frame(addressing.format(model=group))],
+        UserAPIKeyAuth(token="hashed", models=[group]),
+    )
+
+    upstream_ws.send.assert_awaited_once()
+    sent_setup = json.loads(upstream_ws.send.await_args.args[0])["setup"]
+    assert sent_setup["model"].startswith("projects/")
+    assert _policy_close_reason(websocket) is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("addressing", VERTEX_LIVE_CLIENT_ADDRESSINGS)
+async def test_vertex_live_setup_frame_refuses_an_unpermitted_group_in_every_addressing(addressing):
+    """Normalizing the addressing must not become a way to reach a group the key does not hold"""
+    websocket, upstream_ws = await _run_vertex_live_gated_passthrough(
+        [_setup_frame(addressing.format(model="gemini-3-pro-live"))],
+        UserAPIKeyAuth(token="hashed", models=[VERTEX_LIVE_GROUP]),
+    )
+
+    upstream_ws.send.assert_not_awaited()
+    reason = _policy_close_reason(websocket)
+    assert reason is not None and "gemini-3-pro-live" in reason
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("addressing", VERTEX_LIVE_CLIENT_ADDRESSINGS)
+async def test_vertex_live_setup_frame_naming_no_group_at_all_is_refused_in_every_addressing(addressing):
+    """A name that resolves to no group is authorized as it arrived, so an unknown model cannot ride a prefix in"""
+    websocket, upstream_ws = await _run_vertex_live_gated_passthrough(
+        [_setup_frame(addressing.format(model="totally-unlisted-model-abc"))],
+        UserAPIKeyAuth(token="hashed", models=[VERTEX_LIVE_GROUP]),
+    )
+
+    upstream_ws.send.assert_not_awaited()
+    assert _policy_close_reason(websocket) is not None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("addressing", VERTEX_LIVE_CLIENT_ADDRESSINGS[1:])
+async def test_vertex_live_setup_frame_does_not_strip_a_prefix_off_a_model_no_group_serves(addressing):
+    """
+    Stripping the addressing off a name the router does not serve would let a wildcard key reach an arbitrary
+    publisher model, and a full path would carry a project of the caller's choosing with it
+    """
+    websocket, upstream_ws = await _run_vertex_live_gated_passthrough(
+        [_setup_frame(addressing.format(model="gemini-4-pro-live-unserved"))],
+        UserAPIKeyAuth(token="hashed", models=["gemini-*"]),
+    )
+
+    upstream_ws.send.assert_not_awaited()
+    assert _policy_close_reason(websocket) is not None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("addressing", VERTEX_LIVE_CLIENT_ADDRESSINGS)
+async def test_vertex_live_setup_frame_is_checked_against_the_team_in_every_addressing(addressing):
+    """The team allowlist is keyed by group too, so the addressing must not decide whether the team is checked"""
+    websocket, upstream_ws = await _run_vertex_live_gated_passthrough(
+        [_setup_frame(addressing.format(model="gemini-3-pro-live"))],
+        UserAPIKeyAuth(
+            token="hashed",
+            models=["all-team-models"],
+            team_id="team-1",
+            team_models=[VERTEX_LIVE_GROUP],
+        ),
+    )
+
+    upstream_ws.send.assert_not_awaited()
+    reason = _policy_close_reason(websocket)
+    assert reason is not None and "team not allowed to access model" in reason
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("addressing", VERTEX_LIVE_CLIENT_ADDRESSINGS)
+async def test_vertex_live_setup_frame_resolves_an_access_group_grant_in_every_addressing(addressing):
+    """
+    ``get_model_access_groups`` is keyed by group as well, and returns nothing for a prefixed name, so a key
+    entitled through an access group rather than a model name needs the same normalization
+    """
+    from litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints import (
+        _build_vertex_live_client_frame_gate,
+    )
+
+    llm_router = litellm.Router(
+        model_list=[
+            {
+                "model_name": VERTEX_LIVE_GROUP,
+                "litellm_params": {"model": f"vertex_ai/{VERTEX_LIVE_GROUP}"},
+                "model_info": {"access_groups": ["live-team"]},
+            },
+        ]
+    )
+    gate = _build_vertex_live_client_frame_gate(
+        llm_model_list=llm_router.get_model_list(),
+        llm_router=llm_router,
+    )
+
+    frame = json.dumps({"setup": {"model": addressing.format(model=VERTEX_LIVE_GROUP)}})
+    denial = await gate(frame, UserAPIKeyAuth(token="hashed", models=["live-team"]))
+
+    assert denial is None
 
 
 async def _run_vertex_live_route(client_frames, valid_token):
