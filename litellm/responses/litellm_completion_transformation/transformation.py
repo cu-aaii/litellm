@@ -2642,7 +2642,15 @@ class LiteLLMCompletionResponsesConfig:
             if hasattr(prompt_details, "text_tokens") and prompt_details.text_tokens is not None:
                 input_details_dict["text_tokens"] = prompt_details.text_tokens
 
-            for modality in ("audio_tokens", "image_tokens", "video_tokens"):
+            # Grounding counters ride here too: the cost path reads them off the input details, and a
+            # realtime session's usage is rebuilt from response.done, so dropping them bills no query fee.
+            for modality in (
+                "audio_tokens",
+                "image_tokens",
+                "video_tokens",
+                "web_search_requests",
+                "google_maps_grounding_requests",
+            ):
                 value = getattr(prompt_details, modality, None)
                 if value is not None:
                     input_details_dict[modality] = value
