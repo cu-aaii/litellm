@@ -1,5 +1,5 @@
 import base64
-from typing import Any, cast
+from typing import Any, Final, cast
 
 import pytest
 
@@ -38,6 +38,21 @@ from litellm.types.utils import (
     StreamingChoices,
     Usage,
 )
+
+
+def test_translate_openai_response_to_anthropic_empty_choices() -> None:
+    response: Final = ModelResponse(
+        id="chatcmpl-empty",
+        model="gemini-3.5-flash",
+        choices=[],
+        usage=Usage(prompt_tokens=10, completion_tokens=0, total_tokens=10),
+    )
+
+    result: Final = LiteLLMAnthropicMessagesAdapter().translate_openai_response_to_anthropic(response)
+
+    assert result["content"] == []
+    assert result["stop_reason"] == "end_turn"
+    assert result["usage"]["input_tokens"] == 10
 
 
 def test_translate_streaming_openai_chunk_to_anthropic_content_block():
