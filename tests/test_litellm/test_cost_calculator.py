@@ -19,6 +19,7 @@ from litellm.llms.base_llm.ocr.transformation import OCRPage, OCRResponse, OCRUs
 from litellm.types.llms.base import CachedTokensDetails
 from litellm.types.llms.openai import OpenAIRealtimeStreamList, ResponseAPIUsage, ResponsesAPIResponse
 from litellm.types.rerank import RerankResponse
+from litellm.utils import supports_prompt_caching
 from litellm.types.utils import (
     CallTypes,
     Choices,
@@ -4852,3 +4853,80 @@ def test_realtime_base_model_outranks_the_session_reported_model(monkeypatch: py
     )
     assert base_priced != pytest.approx(session_priced, rel=1e-9)
     assert with_base_model == pytest.approx(base_priced, rel=1e-9)
+
+
+GEMINI_LIVE_NATIVE_AUDIO_CASES: Final = (
+    ("gemini-live-2.5-flash-native-audio", "vertex_ai"),
+    ("gemini-live-2.5-flash-preview-native-audio-09-2025", "vertex_ai"),
+    ("gemini/gemini-live-2.5-flash-preview-native-audio-09-2025", "gemini"),
+    ("gemini-live-2.5-flash", "vertex_ai"),
+    ("vertex_ai/gemini-live-2.5-flash", "vertex_ai"),
+    ("vertex_ai/gemini-live-2.5-flash-native-audio", "vertex_ai"),
+)
+
+
+@pytest.mark.parametrize(("model", "provider"), GEMINI_LIVE_NATIVE_AUDIO_CASES)
+def test_gemini_live_native_audio_bills_no_live_specific_cached_rate(
+    _local_model_cost_map: None, model: str, provider: str
+) -> None:
+    """Google lists no Live or native-audio model under either implicit or explicit context caching,
+    and its pricing page prints N/A in both cached-input columns for every Gemini 2.5 Flash Live API
+    row, so these entries must carry no cached rate of their own. A cached count therefore leaves
+    the bill at the fresh input rate, the same as every other model with no published cached price,
+    instead of applying the 7.5e-08 two of them used to carry."""
+    prompt_usd, _ = cost_per_token(
+        model=model,
+        prompt_tokens=101_000,
+        completion_tokens=0,
+        custom_llm_provider=provider,
+        usage_object=Usage(
+            prompt_tokens=101_000,
+            completion_tokens=0,
+            prompt_tokens_details=PromptTokensDetailsWrapper(cached_tokens=100_000),
+        ),
+    )
+
+    assert prompt_usd == pytest.approx(101_000 * 5e-07)
+
+
+@pytest.mark.parametrize(("model", "provider"), GEMINI_LIVE_NATIVE_AUDIO_CASES)
+def test_gemini_live_native_audio_does_not_advertise_prompt_caching(
+    _local_model_cost_map: None, model: str, provider: str
+) -> None:
+    """The capability claim is what made the absent rate read as a pricing bug. Both assertions have
+    to live together: supports_prompt_caching answers False on any lookup error, so the 2.5 Flash
+    control is what proves the Live answer is the flag being gone and not a swallowed exception.
+
+    The entry must say false rather than say nothing. get_model_info reads the field with a None
+    default, so an absent key reports "nobody checked" where false records the vendor's documented
+    no, and only the second is a claim a reader can act on. The two spellings are indistinguishable
+    through supports_prompt_caching itself, which is why the get_model_info assertion is here."""
+    assert supports_prompt_caching(model=model, custom_llm_provider=provider) is False
+    assert supports_prompt_caching(model="gemini-2.5-flash", custom_llm_provider="vertex_ai") is True
+    assert litellm.get_model_info(model)["supports_prompt_caching"] is False
+
+
+@pytest.mark.parametrize(
+    "model",
+    ["gemini-live-2.5-flash-native-audio", "vertex_ai/gemini-live-2.5-flash-native-audio"],
+)
+def test_gemini_live_native_audio_limits_and_capabilities_match_vendor_model_card(
+    _local_model_cost_map: None, model: str
+) -> None:
+    """Google's card for model ID gemini-live-2.5-flash-native-audio gives a 128K context window and
+    64K maximum output tokens, and marks structured output and URL context as not supported. Its
+    modality list is text, image, audio and video, with no document input, so pdf input cannot be
+    advertised either. The entry claimed a 1M window, an off-by-one 65535 output cap, and all three
+    capabilities.
+
+    This tree carries a separate vertex_ai/-prefixed entry for the same model id, so the two ids
+    resolve to two entries and both have to be corrected for them to agree.
+    """
+    info = litellm.get_model_info(model)
+
+    assert info["max_input_tokens"] == 131072
+    assert info["max_output_tokens"] == 65536
+    assert info["max_tokens"] == 65536
+    assert info["supports_response_schema"] is False
+    assert info["supports_url_context"] is False
+    assert info["supports_pdf_input"] is False
